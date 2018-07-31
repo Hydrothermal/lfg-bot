@@ -1,0 +1,17 @@
+{
+    "name": "lfg-bot",
+    "contributors": [
+        "Hydrothermal"
+    ],
+    "version": "1.0.0",
+    "description": "discord lfg bot",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Hydrothermal/lfg-bot"
+    },
+    "dependencies": {
+        "discord.js": "^11.3.2",
+        "dotenv": "^6.0.0"
+    },
+    "license": "MIT"
+}
