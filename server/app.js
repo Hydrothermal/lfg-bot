@@ -20,8 +20,32 @@ app.use(bodyParser.urlencoded({
 const redis = require('redis')
 const client = redis.createClient()
 
-app.post('/addToQueue', (req, res) => {
-    
+app.get('/getGames', (req, res) => {
+    client.scan('0', 'MATCH', 'games:*', (err, rep) => {
+        if (err) {
+            res.json({
+                error: err
+            })
+            return
+        }
+        res.json(rep[1])
+        return
+    })
+})
+
+app.post('/addGame', (req, res) => {
+    client.hmset(`games:${req.body.name}`, `queue`, '[]', 'max', '10', (err, reply) => {
+        if (err) {
+            res.json({
+                error: err
+            })
+            return
+        }
+        res.json({
+            success: true
+        })
+        return
+    })
 })
 
 app.listen(process.env.PORT, () => {
