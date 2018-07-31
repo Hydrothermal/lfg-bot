@@ -1,7 +1,8 @@
+require("dotenv").config();
+
 const Discord = require("discord.js");
 const bot = new Discord.Client();
 
-require("dotenv").config();
 
 bot.on("ready", () => {
     console.log("Ready.");

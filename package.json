@@ -1,7 +1,8 @@
 {
     "name": "lfg-bot",
     "contributors": [
-        "Hydrothermal"
+        "Hydrothermal",
+        "cthuluhoop123"
     ],
     "version": "1.0.0",
     "description": "discord lfg bot",
