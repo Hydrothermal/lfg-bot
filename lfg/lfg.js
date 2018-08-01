@@ -1,6 +1,5 @@
 const redis = require('redis')
 const client = redis.createClient()
-
 const lfg = module.exports
 
 lfg.getGames = () => {

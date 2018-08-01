@@ -1,13 +1,11 @@
 const path = require('path')
 require('dotenv').config({ path: path.join(__dirname, '../.env') })
 
-
+const express = require('express')
+const cors = require('cors')
 const lfgActions = require('../lfg/lfg.js')
 
-const express = require('express')
 const app = express()
-
-const cors = require('cors')
 
 app.use(cors({
     origin: /(http:\/\/)?localhost:[0-9]{4}.*/,
@@ -34,12 +32,14 @@ app.post('/addGame', (req, res) => {
             res.json({
                 success: true
             })
+            
             return
         })
         .catch(err => {
             res.json({
                 error: err
             })
+            
             return
         })
 })
