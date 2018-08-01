@@ -1,4 +1,7 @@
-require('dotenv').config()
+require('dotenv').config({ path: '../.env' })
+
+
+const lfgActions = require('../lfg/lfg.js')
 
 const express = require('express')
 const app = express()
@@ -17,41 +20,29 @@ app.use(bodyParser.urlencoded({
     extended: true
 }))
 
-const redis = require('redis')
-const client = redis.createClient()
-
 app.get('/getGames', (req, res) => {
-    client.scan('0', 'MATCH', 'games:*', (err, rep) => {
-        if (err) {
-            res.json({
-                error: err
-            })
-            return
-        }
-        res.json(rep[1])
-        return
-    })
+    lfgActions.getGames()
+        .then(games => {
+            res.json(games)
+        })
 })
 
 app.post('/addGame', (req, res) => {
-    client.hmset(`games:${req.body.name}`, `queue`, '[]', 'max', '10', (err, reply) => {
-        if (err) {
+    lfgActions.addGame(req.body.name, '10')
+        .then(() => {
+            res.json({
+                success: true
+            })
+            return
+        })
+        .catch(err => {
             res.json({
                 error: err
             })
             return
-        }
-        res.json({
-            success: true
         })
-        return
-    })
 })
 
 app.listen(process.env.PORT, () => {
     console.log(`Listening on ${process.env.PORT}`)
-})
-
-client.on('error', err => {
-    console.log(`Error with redis database: ${err}`)
 })
