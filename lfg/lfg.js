@@ -8,6 +8,7 @@ class lfg {
                 if (err) {
                     reject(err)
                 }
+                
                 resolve(rep[1].map(game => game.replace(/games:/, '')))
             })
         })
@@ -19,6 +20,7 @@ class lfg {
                 if (err) {
                     reject(err)
                 }
+                
                 resolve(reply)
             })
         })
