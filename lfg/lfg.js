@@ -23,3 +23,16 @@ lfg.addGame = (name, maxMembers) => {
         })
     })
 }
+
+lfg._makeUniquePartyID = () => {
+    return new Promise((resolve, reject) => {
+        client.scan('0', 'MATCH', 'games:*:*', (err, rep) => {
+            if (err) {
+                reject(err)
+            }
+            resolve(rep[1].map(id => {
+                return id.replace(/^(games:[aA-zZ0-9]*:)([0-9]*)$/, '$2')
+            }))
+        })
+    })
+}

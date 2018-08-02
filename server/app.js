@@ -32,15 +32,11 @@ app.post('/addGame', (req, res) => {
             res.json({
                 success: true
             })
-            
-            return
         })
         .catch(err => {
             res.json({
                 error: err
             })
-            
-            return
         })
 })
 
