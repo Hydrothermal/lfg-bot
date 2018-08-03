@@ -14,8 +14,33 @@ lfg.addGame = (name, maxMembers) => {
     })
 }
 
+lfg.addPartyMember = (partyID, member) => {
+    return new Promise(async (resolve, reject) => {
+        let party = await this._promiseScan(`games:*:queues:${partyID}`)
+            .catch(err => {
+                reject(err)
+            })
+        if (!party) return
+        party = party[1]
+        if (party.length == 0) {
+            reject('Error: Party does not exist.')
+            return
+        }
+        let { members } = await this._promiseHgetAll(party[0])
+        membersArray = JSON.parse(members)
+        membersArray.push(member)
+        client.hmset(party[0], `members`, JSON.stringify(membersArray), (err, reply) => {
+            if (err) {
+                reject(err)
+                return
+            }
+            resolve(reply)
+        })
+    })
+}
+
 //i dont know where we should handle max members to a queue
-lfg.createGame = (game, mode, leaderMember) => {
+lfg.createParty = (game, mode, leaderMember) => {
     return new Promise(async (resolve, reject) => {
         let uniqueID = await this._makeUniquePartyID().catch(err => {
             reject(err)
