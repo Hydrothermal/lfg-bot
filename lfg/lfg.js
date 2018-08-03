@@ -31,6 +31,23 @@ lfg.createGame = (game, mode, leaderMember) => {
     })
 }
 
+lfg.destroyParty = id => {
+    return new Promise(async (resolve, reject) => {
+        let targetQueue = await this._promiseScan(`games:*:queues:${id}`)
+            .catch(err => {
+                reject(err)
+            })
+        if (!targetQueue) return
+        client.del(targetQueue[1], (err, reply) => {
+            if (err) {
+                reject(err)
+                return
+            }
+            resolve(reply)
+        })
+    })
+}
+
 lfg.getGames = () => {
     return new Promise((resolve, reject) => {
         client.scan('0', 'MATCH', 'games:*', (err, rep) => {
@@ -54,7 +71,7 @@ lfg.listParties = (game = undefined) => {
             for (let queue of reply[1]) {
                 let queueInfo = await this._promiseHgetAll(queue)
                 if (queueInfo) {
-                    arrayOfQueues.push(Object.assign(queueInfo, { id: queue.replace(/^(games:[aA-zZ0-9]*:queues:)([0-9]*)$/, '$2')}))
+                    arrayOfQueues.push(Object.assign(queueInfo, { id: queue.replace(/^(games:[aA-zZ0-9]*:queues:)([0-9]*)$/, '$2') }))
                 }
             }
             resolve(arrayOfQueues)
@@ -85,7 +102,7 @@ lfg._makeUniquePartyID = () => {
     })
 }
 
-lfg._promiseHgetAll = (search) => {
+lfg._promiseHgetAll = search => {
     return new Promise((resolve, reject) => {
         client.hgetall(search, (err, reply) => {
             if (err) {
@@ -97,7 +114,7 @@ lfg._promiseHgetAll = (search) => {
     })
 }
 
-lfg._promiseScan = (search) => {
+lfg._promiseScan = search => {
     return new Promise((resolve, reject) => {
         client.scan('0', 'MATCH', search, (err, rep) => {
             if (err) {
