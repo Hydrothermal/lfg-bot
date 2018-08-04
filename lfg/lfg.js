@@ -1,106 +1,77 @@
-const redis = require('redis')
-const client = redis.createClient()
 const lfg = module.exports
+const promiseRedis = require('../promiseRedis/promiseRedis.js')
 
 lfg.addGame = (name, maxMembers) => {
-    return new Promise((resolve, reject) => {
-        client.hmset(`games:${name}`, `queue`, '[]', 'max', maxMembers, (err, reply) => {
-            if (err) {
-                reject(err)
-                return
-            }
-            resolve(reply)
-        })
-    })
+    return promiseRedis.hmset([`games:${name}`, `queue`, '[]', 'max', maxMembers])
 }
 
 lfg.addPartyMember = (partyID, member) => {
     return new Promise(async (resolve, reject) => {
-        let party = await this._promiseScan(`games:*:queues:${partyID}`)
-            .catch(err => {
-                reject(err)
-            })
-        if (!party) return
-        party = party[1]
-        if (party.length == 0) {
-            reject('Error: Party does not exist.')
-            return
-        }
-        let { members } = await this._promiseHgetAll(party[0])
-        membersArray = JSON.parse(members)
-        membersArray.push(member)
-        client.hmset(party[0], `members`, JSON.stringify(membersArray), (err, reply) => {
-            if (err) {
-                reject(err)
-                return
+        try {
+            let [, party] = await promiseRedis.scan(`games:*:queues:${partyID}`)
+            if (party.length == 0) {
+                reject('Error: Party does not exist.')
+            } else {
+                let { members } = await promiseRedis.hgetall(party[0])
+                membersArray = JSON.parse(members)
+                membersArray.push(member)
+                resolve(await promiseRedis.hmset([party[0], `members`, JSON.stringify(membersArray)]))
             }
-            resolve(reply)
-        })
+        } catch (err) {
+            reject(err)
+        }
     })
 }
 
 //i dont know where we should handle max members to a queue
 lfg.createParty = (game, mode, leaderMember) => {
     return new Promise(async (resolve, reject) => {
-        let uniqueID = await this._makeUniquePartyID().catch(err => {
-            reject(err)
-        })
-        if (!uniqueID) return
-        client.hmset(`games:${game}:queues:${uniqueID}`, `leader`, JSON.stringify(leaderMember), `members`, JSON.stringify([leaderMember]), `mode`, mode, (err, reply) => {
-            if (err) {
-                reject(err)
-                return
-            }
+        try {
+            let uniqueID = await this._makeUniquePartyID()
+            await promiseRedis.hmset([`games:${game}:queues:${uniqueID}`, `leader`, JSON.stringify(leaderMember), `members`, JSON.stringify([leaderMember]), `mode`, mode])
             resolve(uniqueID)
-        })
+        } catch (err) {
+            reject(err)
+        }
     })
 }
 
 lfg.destroyParty = id => {
     return new Promise(async (resolve, reject) => {
-        let targetQueue = await this._promiseScan(`games:*:queues:${id}`)
-            .catch(err => {
-                reject(err)
-            })
-        if (!targetQueue) return
-        client.del(targetQueue[1], (err, reply) => {
-            if (err) {
-                reject(err)
-                return
-            }
-            resolve(reply)
-        })
+        try {
+            let [, targetQueue] = await promiseRedis.scan(`games:*:queues:${id}`)
+            resolve(await promiseRedis.del(targetQueue[0]))
+        } catch (err) {
+            reject(err)
+        }
     })
 }
 
 lfg.getGames = () => {
-    return new Promise((resolve, reject) => {
-        client.scan('0', 'MATCH', 'games:*', (err, rep) => {
-            if (err) {
-                reject(err)
-                return
-            }
-            resolve(rep[1].map(game => game.replace(/games:/, '')))
-        })
+    return new Promise(async (resolve, reject) => {
+        try {
+            let [, games] = await promiseRedis.scan('games:*')
+            resolve(games.map(game => game.replace(/games:/, '')))
+        } catch (err) {
+            reject(err)
+        }
     })
 }
 
 lfg.listParties = (game = undefined) => {
-    return new Promise((resolve, reject) => {
-        client.scan('0', 'MATCH', `games:${game ? game : '*'}:queues:*`, async (err, reply) => {
-            if (err) {
-                reject(err)
-                return
+    return new Promise(async (resolve, reject) => {
+        try {
+            let [, gameParties] = await promiseRedis.scan(`games:${game ? game : '*'}:queues:*`)
+            let gamePartiesArray = []
+            for (let queue of gameParties) {
+                let queueInfo = await promiseRedis.hgetall(queue)
+                    .catch(() => { })
+                gamePartiesArray.push(Object.assign(queueInfo, { id: queue.replace(/^(games:[aA-zZ0-9]*:queues:)([0-9]*)$/, '$2') }))
             }
-            let arrayOfQueues = []
-            for (let queue of reply[1]) {
-                let queueInfo = await this._promiseHgetAll(queue)
-                if (queueInfo) {
-                    arrayOfQueues.push(Object.assign(queueInfo, { id: queue.replace(/^(games:[aA-zZ0-9]*:queues:)([0-9]*)$/, '$2') }))
-                }
-            }
-            resolve(arrayOfQueues)
-        })
+            resolve(gamePartiesArray)
+        } catch (err) {
+            reject(err)
+        }
     })
 }
 
@@ -108,45 +79,19 @@ lfg._makeUniquePartyID = () => {
     return new Promise(async (resolve, reject) => {
         let keepLooping = true
         while (keepLooping) {
-            let uniqueID = Math.floor(100000 + Math.random() * 900000)
-            let duplicateIDs = await this._promiseScan('games:*:queues:*')
-                .catch(err => {
-                    reject(err)
+            try {
+                let uniqueID = Math.floor(100000 + Math.random() * 900000)
+                let [, duplicateIDs] = await promiseRedis.scan('games:*:queues:*')\
+                duplicateIDs = duplicateIDs.map(id => {
+                    return id.replace(/^(games:[aA-zZ0-9]*:queues:)([0-9]*)$/, '$2')
+                }).filter(id => {
+                    return id == uniqueID
                 })
-            if (!duplicateIDs) return
-            duplicateIDs = duplicateIDs[1].map(id => {
-                return id.replace(/^(games:[aA-zZ0-9]*:queues:)([0-9]*)$/, '$2')
-            }).filter(id => {
-                return id == uniqueID
-            })
-            if (duplicateIDs.length == 0) {
-                resolve(uniqueID)
-                keepLooping = false
-            }
+                if (duplicateIDs.length == 0) {
+                    resolve(uniqueID)
+                    keepLooping = false
+                }
+            } catch (err) {}
         }
-    })
-}
-
-lfg._promiseHgetAll = search => {
-    return new Promise((resolve, reject) => {
-        client.hgetall(search, (err, reply) => {
-            if (err) {
-                reject(err)
-                return
-            }
-            resolve(reply)
-        })
-    })
-}
-
-lfg._promiseScan = search => {
-    return new Promise((resolve, reject) => {
-        client.scan('0', 'MATCH', search, (err, rep) => {
-            if (err) {
-                reject(err)
-                return
-            }
-            resolve(rep)
-        })
     })
 }
