@@ -24,11 +24,11 @@ lfg.addPartyMember = (partyID, member) => {
 }
 
 //i dont know where we should handle max members to a queue
-lfg.createParty = (game, mode, leaderMember) => {
+lfg.createParty = (game, mode, size, leaderMember) => {
     return new Promise(async (resolve, reject) => {
         try {
             let uniqueID = await this._makeUniquePartyID()
-            await promiseRedis.hmset([`games:${game}:queues:${uniqueID}`, `leader`, JSON.stringify(leaderMember), `members`, JSON.stringify([leaderMember]), `mode`, mode])
+            await promiseRedis.hmset([`games:${game}:queues:${uniqueID}`, `leader`, JSON.stringify(leaderMember), `members`, JSON.stringify([leaderMember]), `mode`, mode, `size`, size])
             resolve(uniqueID)
         } catch (err) {
             reject(err)
@@ -58,6 +58,17 @@ lfg.getGames = () => {
     })
 }
 
+lfg.getGameInfo = game => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let gameInfo = await promiseRedis.hgetall(`games:${game}`)
+            resolve(gameInfo)
+        } catch (err) {
+            reject(err)
+        }
+    })
+}
+
 lfg.listParties = (game = undefined) => {
     return new Promise(async (resolve, reject) => {
         try {
@@ -81,7 +92,7 @@ lfg._makeUniquePartyID = () => {
         while (keepLooping) {
             try {
                 let uniqueID = Math.floor(100000 + Math.random() * 900000)
-                let [, duplicateIDs] = await promiseRedis.scan('games:*:queues:*')\
+                let [, duplicateIDs] = await promiseRedis.scan('games:*:queues:*')
                 duplicateIDs = duplicateIDs.map(id => {
                     return id.replace(/^(games:[aA-zZ0-9]*:queues:)([0-9]*)$/, '$2')
                 }).filter(id => {
