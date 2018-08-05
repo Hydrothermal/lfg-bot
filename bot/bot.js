@@ -29,7 +29,7 @@ bot.on('message', async message => {
                 let game = args[0].toLowerCase()
                 try {
                     const filter = m => {
-                        return m.member.id == message.member.id && m.content.toLowerCase().startsWith(`${prefix} `)
+                        return m.member.id == message.member.id
                     }
 
                     message.channel.send(`What game mode would you like to play?`)
@@ -40,14 +40,13 @@ bot.on('message', async message => {
                         mode = mode [1]
 
                         message.channel.send(`How many players are you looking for (excluding you)?`)
-
+                        console.log('here')
                         let queueSizeMessage = await message.channel.awaitMessages(filter, { max: 1, time: 60 * 1000, errors: ['time'] })
+                        console.log("never here")
                         let queueSize = queueSizeMessage.first().content.toLowerCase().split(' ')
                         queueSize = queueSize[0] //should make sure this is a number. tis a quest for another day
-                        console.log(queueSize)
                         try {
                             let partyID = await lfg.createParty(game, mode, queueSize, message.member)
-                            console.log(partyID)
                         } catch (err) {
                             message.reply('Error interacting with queue database. Your queue has not been created.')
                         }
