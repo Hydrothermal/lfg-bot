@@ -29,6 +29,7 @@ promiseRedis.hgetall = search => {
 
 promiseRedis.hmset = args => {
     return new Promise((resolve, reject) => {
+        console.log('hmset')
         client.hmset(args, (err, reply) => {
             if (err || !reply) {
                 reject(err)
@@ -39,11 +40,13 @@ promiseRedis.hmset = args => {
     })
 }
 
-promiseRedis.lpush = args => {
+promiseRedis.set = args => {
     return new Promise((resolve, reject) => {
-        client.lpush(args, (err, reply) => {
+        console.log('set')
+        client.set(args, (err, reply) => {
             if (err || !reply) {
                 reject(err)
+                return
             }
             resolve(reply)
         })
