@@ -39,13 +39,24 @@ promiseRedis.hmset = args => {
     })
 }
 
+promiseRedis.lpush = args => {
+    return new Promise((resolve, reject) => {
+        client.lpush(args, (err, reply) => {
+            if (err || !reply) {
+                reject(err)
+            }
+            resolve(reply)
+        })
+    })
+}
+
 promiseRedis.scan = search => {
     return new Promise((resolve, reject) => {
         client.scan('0', 'MATCH', search, (err, reply) => {
             if (err || !reply) {
                 reject(err)
             }
-            resolve(rep)
+            resolve(reply)
         })
     })
 }

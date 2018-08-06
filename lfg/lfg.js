@@ -28,7 +28,7 @@ lfg.createParty = (game, mode, size, leaderMember) => {
     return new Promise(async (resolve, reject) => {
         try {
             let uniqueID = await this._makeUniquePartyID()
-            await promiseRedis.hmset([`games:${game}:queues:${uniqueID}`, `leader`, JSON.stringify(leaderMember), `members`, JSON.stringify([leaderMember]), `mode`, mode, `size`, size])
+            await promiseRedis.hmset([`games:${game.toLowerCase()}:queues:${uniqueID}`, `members`, JSON.stringify([leaderMember]), `mode`, mode.toLowerCase(), `size`, size])
             resolve(uniqueID)
         } catch (err) {
             reject(err)
@@ -61,8 +61,21 @@ lfg.getGames = () => {
 lfg.getGameInfo = game => {
     return new Promise(async (resolve, reject) => {
         try {
-            let gameInfo = await promiseRedis.hgetall(`games:${game}`)
+            let gameInfo = await promiseRedis.hgetall(`games:${game.toLowerCase()}`)
             resolve(gameInfo)
+        } catch (err) {
+            reject(err)
+        }
+    })
+}
+
+lfg.getPartyInfo = id => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let [, partyEntry] = await promiseRedis.scan(`games:*:queues:${id}`)
+            let partyInfo = await promiseRedis.hgetall(partyEntry[0])
+            let parsedPartyInfo = Object.assign(partyInfo, { members: JSON.parse(partyInfo.members) })
+            resolve(parsedPartyInfo)
         } catch (err) {
             reject(err)
         }
@@ -72,7 +85,7 @@ lfg.getGameInfo = game => {
 lfg.listParties = (game = undefined) => {
     return new Promise(async (resolve, reject) => {
         try {
-            let [, gameParties] = await promiseRedis.scan(`games:${game ? game : '*'}:queues:*`)
+            let [, gameParties] = await promiseRedis.scan(`games:${game ? game.toLowerCase() : '*'}:queues:*`)
             let gamePartiesArray = []
             for (let queue of gameParties) {
                 let queueInfo = await promiseRedis.hgetall(queue)
@@ -102,7 +115,7 @@ lfg._makeUniquePartyID = () => {
                     resolve(uniqueID)
                     keepLooping = false
                 }
-            } catch (err) {}
+            } catch (err) { }
         }
     })
 }
