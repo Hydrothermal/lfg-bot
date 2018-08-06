@@ -6,7 +6,19 @@ const promiseRedis = module.exports
 promiseRedis.del = key => {
     return new Promise((resolve, reject) => {
         client.del(key, (err, reply) => {
-            if (err) {
+            if (err || !reply) {
+                reject(err)
+                return
+            }
+            resolve(reply)
+        })
+    })
+}
+
+promiseRedis.get = key => {
+    return new Promise((resolve, reject) => {
+        client.get(key, (err, reply) => {
+            if (err || !reply) {
                 reject(err)
                 return
             }
@@ -18,7 +30,7 @@ promiseRedis.del = key => {
 promiseRedis.hgetall = search => {
     return new Promise((resolve, reject) => {
         client.hgetall(search, (err, reply) => {
-            if (err) {
+            if (err || !reply) {
                 reject(err)
                 return
             }
@@ -30,7 +42,19 @@ promiseRedis.hgetall = search => {
 promiseRedis.hmset = args => {
     return new Promise((resolve, reject) => {
         client.hmset(args, (err, reply) => {
-            if (err) {
+            if (err || !reply) {
+                reject(err)
+                return
+            }
+            resolve(reply)
+        })
+    })
+}
+
+promiseRedis.set = args => {
+    return new Promise((resolve, reject) => {
+        client.set(...args, (err, reply) => {
+            if (err || !reply) {
                 reject(err)
                 return
             }
@@ -41,11 +65,11 @@ promiseRedis.hmset = args => {
 
 promiseRedis.scan = search => {
     return new Promise((resolve, reject) => {
-        client.scan('0', 'MATCH', search, (err, rep) => {
-            if (err) {
+        client.scan('0', 'MATCH', search, (err, reply) => {
+            if (err || !reply) {
                 reject(err)
             }
-            resolve(rep)
+            resolve(reply)
         })
     })
 }

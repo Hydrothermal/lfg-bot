@@ -12,10 +12,10 @@ lfg.addPartyMember = (partyID, member) => {
             if (party.length == 0) {
                 reject('Error: Party does not exist.')
             } else {
-                let { members } = await promiseRedis.hgetall(party[0])
-                membersArray = JSON.parse(members)
-                membersArray.push(member)
-                resolve(await promiseRedis.hmset([party[0], `members`, JSON.stringify(membersArray)]))
+                // let { members } = await promiseRedis.hgetall(party[0])
+                // membersArray = JSON.parse(members)
+                // membersArray.push(member)
+                resolve(await promiseRedis.set([`${party[0]}:members:${member.user.id}`, JSON.stringify(member)]))
             }
         } catch (err) {
             reject(err)
@@ -24,11 +24,12 @@ lfg.addPartyMember = (partyID, member) => {
 }
 
 //i dont know where we should handle max members to a queue
-lfg.createParty = (game, mode, leaderMember) => {
+lfg.createParty = (game, mode, size, leaderMember) => {
     return new Promise(async (resolve, reject) => {
         try {
             let uniqueID = await this._makeUniquePartyID()
-            await promiseRedis.hmset([`games:${game}:queues:${uniqueID}`, `leader`, JSON.stringify(leaderMember), `members`, JSON.stringify([leaderMember]), `mode`, mode])
+            await promiseRedis.hmset([`games:${game.toLowerCase()}:queues:${uniqueID}`, `mode`, mode.toLowerCase(), `size`, size])
+            await this.addPartyMember(uniqueID, leaderMember)
             resolve(uniqueID)
         } catch (err) {
             reject(err)
@@ -58,10 +59,38 @@ lfg.getGames = () => {
     })
 }
 
+lfg.getGameInfo = game => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let gameInfo = await promiseRedis.hgetall(`games:${game.toLowerCase()}`)
+            resolve(gameInfo)
+        } catch (err) {
+            reject(err)
+        }
+    })
+}
+
+lfg.getPartyInfo = id => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let [, partyEntry] = await promiseRedis.scan(`games:*:queues:${id}`)
+            let [, partyMembers] = await promiseRedis.scan(`games:*:queues:${id}:members:*`)
+            let partyInfo = await promiseRedis.hgetall(partyEntry[0])
+            partyInfo.members = []
+            for (let partyMember of partyMembers) {
+                partyInfo.members.push(JSON.parse(await promiseRedis.get(partyMember)))
+            }
+            resolve(partyInfo)
+        } catch (err) {
+            reject(err)
+        }
+    })
+}
+
 lfg.listParties = (game = undefined) => {
     return new Promise(async (resolve, reject) => {
         try {
-            let [, gameParties] = await promiseRedis.scan(`games:${game ? game : '*'}:queues:*`)
+            let [, gameParties] = await promiseRedis.scan(`games:${game ? game.toLowerCase() : '*'}:queues:*`)
             let gamePartiesArray = []
             for (let queue of gameParties) {
                 let queueInfo = await promiseRedis.hgetall(queue)
@@ -78,20 +107,23 @@ lfg.listParties = (game = undefined) => {
 lfg._makeUniquePartyID = () => {
     return new Promise(async (resolve, reject) => {
         let keepLooping = true
+        let uniqueID = ''
         while (keepLooping) {
             try {
-                let uniqueID = Math.floor(100000 + Math.random() * 900000)
-                let [, duplicateIDs] = await promiseRedis.scan('games:*:queues:*')\
+                uniqueID = Math.floor(100000 + Math.random() * 900000)
+                let [, duplicateIDs] = await promiseRedis.scan('games:*:queues:*')
                 duplicateIDs = duplicateIDs.map(id => {
                     return id.replace(/^(games:[aA-zZ0-9]*:queues:)([0-9]*)$/, '$2')
                 }).filter(id => {
                     return id == uniqueID
                 })
                 if (duplicateIDs.length == 0) {
-                    resolve(uniqueID)
                     keepLooping = false
+
+                    resolve(uniqueID)
+
                 }
-            } catch (err) {}
+            } catch (err) { }
         }
     })
 }
