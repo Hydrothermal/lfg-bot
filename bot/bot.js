@@ -54,6 +54,7 @@ bot.on('message', async message => {
                     let size = partySize.first().content
                     try {
                         let partyID = await lfg.createParty(game, mode, size, message.member)
+                        //group has been created.
                     } catch (err) {
                         message.reply('Error interacting with queue database. Your queue has not been created.')
                     }
