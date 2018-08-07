@@ -7,6 +7,8 @@ const bot = new Discord.Client()
 
 const prefix = 'l!'
 
+let databaseBusy = false
+
 bot.on('ready', () => {
     console.log('Ready.')
 
@@ -27,31 +29,19 @@ bot.on('message', async message => {
         case prefix + 'createparty':
             if (args.length > 0) {
                 let game = args[0].toLowerCase()
-                const filter = (size = false) => {
-                    if (!size) {
-                        return m => {
-                            return m.member.id == message.member.id
-                        }
-                    } else {
-                        return m => {
-                            return m.member.id == message.member.id && Number(message.content)
-                        }
-                    }
-                }
 
                 message.channel.send(`What game mode would you like to play?`)
 
                 try {
-                    let modeOptionsMessage = await message.channel.awaitMessages(filter, { max: 1, time: 60 * 1000, errors: ['time'] })
-                    let mode = modeOptionsMessage.first().content.toLowerCase().split(' ')
-                    mode = mode[1]
+                    let gameMode = await message.channel.awaitMessages(filter, awaitObj)
+                    let mode = gameMode.first().content.toLowerCase()
 
                     message.channel.send(`How many players are you looking for (excluding you)?`)
-                    let queueSizeMessage = await message.channel.awaitMessages(filter(true), { max: 1, time: 60 * 1000, errors: ['time'] })
-                    let queueSize = queueSizeMessage.first().content.toLowerCase().split(' ')
-                    queueSize = queueSize[0]
+                    let partySize = await message.channel.awaitMessages(filter(true), awaitObj)
+                    let size = partySize.first().content
                     try {
-                        let partyID = await lfg.createParty(game, mode, queueSize, message.member)
+                        let partyID = await lfg.createParty(game, mode, size, message.member)
+                        //group has been created.
                     } catch (err) {
                         message.reply('Error interacting with queue database. Your queue has not been created.')
                     }
@@ -68,3 +58,21 @@ bot.on('message', async message => {
 })
 
 bot.login(process.env.LFG_TOKEN)
+
+
+
+
+
+const filter = (size = false) => {
+    if (!size) {
+        return m => {
+            return m.member.id == message.member.id
+        }
+    } else {
+        return m => {
+            return m.member.id == message.member.id && Number(message.content)
+        }
+    }
+}
+
+const awaitObj = { max: 1, time: 60 * 1000, errors: ['time'] }
