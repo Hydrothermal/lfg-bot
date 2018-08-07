@@ -28,8 +28,9 @@ lfg.createParty = (game, mode, size, leaderMember) => {
     return new Promise(async (resolve, reject) => {
         try {
             let uniqueID = await this._makeUniquePartyID()
-            await promiseRedis.hmset([`games:${game.toLowerCase()}:queues:${uniqueID}`, `mode`, mode.toLowerCase(), `size`, size])
-            await this.addPartyMember(uniqueID, leaderMember)
+            let addEntry = promiseRedis.hmset([`games:${game.toLowerCase()}:queues:${uniqueID}`, `mode`, mode.toLowerCase(), `size`, size])
+            let addLeader = this.addPartyMember(uniqueID, leaderMember)
+            await Promise.all([addEntry, addLeader])
             resolve(uniqueID)
         } catch (err) {
             reject(err)
@@ -73,8 +74,9 @@ lfg.getGameInfo = game => {
 lfg.getPartyInfo = id => {
     return new Promise(async (resolve, reject) => {
         try {
-            let [, partyEntry] = await promiseRedis.scan(`games:*:queues:${id}`)
-            let [, partyMembers] = await promiseRedis.scan(`games:*:queues:${id}:members:*`)
+            let getPartyInfo = promiseRedis.scan(`games:*:queues:${id}`)
+            let getPartyMembers = promiseRedis.scan(`games:*:queues:${id}:members:*`)
+            let [[, partyEntry], [, partyMembers]] = await Promise.all([getPartyInfo, getPartyMembers])
             let partyInfo = await promiseRedis.hgetall(partyEntry[0])
             partyInfo.members = []
             for (let partyMember of partyMembers) {
