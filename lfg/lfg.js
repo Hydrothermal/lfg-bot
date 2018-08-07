@@ -17,9 +17,8 @@ lfg.addPartyMember = (partyID, member) => {
 
                 let getPartyMembers = promiseRedis.scan(`games:*:queues:${partyID}:members:*`)
                 let getPartyInfo = this.getPartyInfo(partyID)
-                let [[, allPartyMembers], partyInfo] = Promise.all([getPartyMembers, getPartyInfo])
-
-                if (allPartyMembers.length - 1 == partyInfo.size) {
+                let [[, allPartyMembers], partyInfo] = await Promise.all([getPartyMembers, getPartyInfo])
+                if (allPartyMembers.length >= partyInfo.size) {
                     reject('Party is already full.')
                 } else {
                     await promiseRedis.set([`${party[0]}:members:${member.user.id}`, JSON.stringify(member)])
