@@ -9,19 +9,6 @@ const prefix = 'l!'
 
 let databaseBusy = false
 
-
-const filter = (size = false) => {
-    if (!size) {
-        return m => {
-            return m.member.id == message.member.id
-        }
-    } else {
-        return m => {
-            return m.member.id == message.member.id && Number(message.content)
-        }
-    }
-}
-
 bot.on('ready', () => {
     console.log('Ready.')
 
@@ -46,11 +33,11 @@ bot.on('message', async message => {
                 message.channel.send(`What game mode would you like to play?`)
 
                 try {
-                    let gameMode = await message.channel.awaitMessages(filter, { max: 1, time: 60 * 1000, errors: ['time'] })
+                    let gameMode = await message.channel.awaitMessages(filter, awaitObj)
                     let mode = gameMode.first().content.toLowerCase()
 
                     message.channel.send(`How many players are you looking for (excluding you)?`)
-                    let partySize = await message.channel.awaitMessages(filter(true), { max: 1, time: 60 * 1000, errors: ['time'] })
+                    let partySize = await message.channel.awaitMessages(filter(true), awaitObj)
                     let size = partySize.first().content
                     try {
                         let partyID = await lfg.createParty(game, mode, size, message.member)
@@ -71,3 +58,21 @@ bot.on('message', async message => {
 })
 
 bot.login(process.env.LFG_TOKEN)
+
+
+
+
+
+const filter = (size = false) => {
+    if (!size) {
+        return m => {
+            return m.member.id == message.member.id
+        }
+    } else {
+        return m => {
+            return m.member.id == message.member.id && Number(message.content)
+        }
+    }
+}
+
+const awaitObj = { max: 1, time: 60 * 1000, errors: ['time'] }
