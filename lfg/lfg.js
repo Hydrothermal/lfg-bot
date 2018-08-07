@@ -1,6 +1,9 @@
 const lfg = module.exports
 const promiseRedis = require('../promiseRedis/promiseRedis.js')
 
+
+const circularStringify = require('flatted/cjs').stringify
+
 lfg.addGame = (name, maxMembers) => {
     return promiseRedis.hmset([`games:${name}`, `queue`, '[]', 'max', maxMembers])
 }
@@ -14,6 +17,11 @@ lfg.addPartyMember = (partyID, member) => {
             if (party.length == 0) {
                 reject('Party does not exist.')
             } else {
+                let [, isMemberAlreadyInAParty] = await promiseRedis.scan(`games:*:queues:*:members:*`)
+
+                if (isMemberAlreadyInAParty.length > 0) {
+                    reject('You can only be in 1 party at a time.')
+                }
 
                 let getPartyMembers = promiseRedis.scan(`games:*:queues:${partyID}:members:*`)
                 let getPartyInfo = this.getPartyInfo(partyID)
@@ -21,7 +29,7 @@ lfg.addPartyMember = (partyID, member) => {
                 if (allPartyMembers.length >= partyInfo.size) {
                     reject('Party is already full.')
                 } else {
-                    await promiseRedis.set([`${party[0]}:members:${member.user.id}`, JSON.stringify(member)])
+                    await promiseRedis.set([`${party[0]}:members:${member.user.id}`, circularStringify(member)])
                     if (partyInfo.size + 1 == allPartyMembers.length - 1) {
                         resolve(true)
                     } else {
