@@ -5,17 +5,31 @@ lfg.addGame = (name, maxMembers) => {
     return promiseRedis.hmset([`games:${name}`, `queue`, '[]', 'max', maxMembers])
 }
 
+//resolves true if party has found enough members
 lfg.addPartyMember = (partyID, member) => {
     return new Promise(async (resolve, reject) => {
         try {
+
             let [, party] = await promiseRedis.scan(`games:*:queues:${partyID}`)
             if (party.length == 0) {
-                reject('Error: Party does not exist.')
+                reject('Party does not exist.')
             } else {
-                // let { members } = await promiseRedis.hgetall(party[0])
-                // membersArray = JSON.parse(members)
-                // membersArray.push(member)
-                resolve(await promiseRedis.set([`${party[0]}:members:${member.user.id}`, JSON.stringify(member)]))
+
+                let getPartyMembers = promiseRedis.scan(`games:*:queues:${partyID}:members:*`)
+                let getPartyInfo = this.getPartyInfo(partyID)
+                let [[, allPartyMembers], partyInfo] = Promise.all([getPartyMembers, getPartyInfo])
+
+                if (allPartyMembers.length - 1 == partyInfo.size) {
+                    reject('Party is already full.')
+                } else {
+                    await promiseRedis.set([`${party[0]}:members:${member.user.id}`, JSON.stringify(member)])
+                    if (partyInfo.size + 1 == allPartyMembers.length - 1) {
+                        resolve(true)
+                    } else {
+                        resolve(false)
+                    }
+                }
+
             }
         } catch (err) {
             reject(err)
@@ -28,7 +42,7 @@ lfg.createParty = (game, mode, size, leaderMember) => {
     return new Promise(async (resolve, reject) => {
         try {
             let uniqueID = await this._makeUniquePartyID()
-            let addEntry = promiseRedis.hmset([`games:${game.toLowerCase()}:queues:${uniqueID}`, `mode`, mode.toLowerCase(), `size`, size])
+            let addEntry = promiseRedis.hmset([`games:${game.toLowerCase()}:queues:${uniqueID}`, `mode`, mode.toLowerCase(), `size`, Number(size) + 1])
             let addLeader = this.addPartyMember(uniqueID, leaderMember)
             await Promise.all([addEntry, addLeader])
             resolve(uniqueID)
