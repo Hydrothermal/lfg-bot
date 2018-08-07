@@ -30,15 +30,12 @@ bot.on('message', async message => {
             if (args.length > 0) {
                 let game = args[0].toLowerCase()
 
-                let checkMemberGame = await lfg.getMemberGame(message.author.id)
+                let [checkMemberGame, checkGameExists] = await Promise.all([lfg.getMemberGame(message.author.id), lfg.getGameInfo(game)])
 
                 if (checkMemberGame) {
                     message.reply('You cannot create a party while in one.')
                     return
                 }
-
-                let checkGameExists = await lfg.getGameInfo(game)
-
                 if (!checkGameExists) {
                     message.reply('Please choose an existing game.')
                     return
@@ -58,7 +55,7 @@ bot.on('message', async message => {
                     try {
                         let partyID = await lfg.createParty(game, mode, size, message.member)
 
-                        message.reply(createBasicEmbed(`You are now in a party for ${game}, waiting for ${size - 1} more members. Your party ID is **${partyID}**`))
+                        message.reply({ embed: createBasicEmbed(`You are now in a party for ${game}, waiting for ${size - 1} more members. Your party ID is **${partyID}**`) })
 
                     } catch (err) {
                         message.reply(err.toString())

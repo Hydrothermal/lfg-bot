@@ -2,7 +2,7 @@ const lfg = module.exports
 const promiseRedis = require('../promiseRedis/promiseRedis.js')
 
 
-const circularStringify = require('flatted/cjs').stringify
+const { parse, stringify } = require('flatted/cjs')
 
 lfg.addGame = (name, maxMembers) => {
     return promiseRedis.hmset([`games:${name}`, `queue`, '[]', 'max', maxMembers])
@@ -29,7 +29,7 @@ lfg.addPartyMember = (partyID, member) => {
                 if (allPartyMembers.length >= partyInfo.size) {
                     reject('Party is already full.')
                 } else {
-                    await promiseRedis.set([`${party[0]}:members:${member.user.id}`, circularStringify(member)])
+                    await promiseRedis.set([`${party[0]}:members:${member.user.id}`, stringify(member)])
                     if (partyInfo.size + 1 == allPartyMembers.length - 1) {
                         resolve(true)
                     } else {
@@ -50,7 +50,6 @@ lfg.createParty = (game, mode, size, leaderMember) => {
         try {
 
             let [, isMemberAlreadyInAParty] = await promiseRedis.scan(`games:*:queues:*:members:${leaderMember.user.id}`)
-            console.log(isMemberAlreadyInAParty)
             if (isMemberAlreadyInAParty.length > 0) {
                 reject('You can only be in 1 party at a time.')
             } else {
@@ -110,7 +109,7 @@ lfg.getPartyInfo = id => {
             let partyInfo = await promiseRedis.hgetall(partyEntry[0])
             partyInfo.members = []
             for (let partyMember of partyMembers) {
-                partyInfo.members.push(JSON.parse(await promiseRedis.get(partyMember)))
+                partyInfo.members.push(parse(await promiseRedis.get(partyMember)))
             }
             resolve(partyInfo)
         } catch (err) {
@@ -119,16 +118,18 @@ lfg.getPartyInfo = id => {
     })
 }
 
-lfg.getMemberGame = memberID => {
+lfg.getMember = memberID => {
     return new Promise(async (resolve, reject) => {
         try {
             //games:overwatch:queues:108114:members:177019589010522112
             let [, memberEntry] = await promiseRedis.scan(`games:*:queues:*:members:${memberID}`)
             if (memberEntry.length == 0) {
                 resolve(null)
+            } else {
+                let memberObject = await promiseRedis.get(memberEntry[0])
+                let memberGame = memberEntry[0].replace(/^games:([a-z0-9]*):.*$/, '$1')
+                resolve(Object.assign({ game: memberGame }, parse(memberObject)))
             }
-            let memberGame = memberEntry[0].replace(/^games:([a-z0-9]*):.*$/, '$1')
-            resolve(memberGame)
         } catch (err) {
             reject(err)
         }
