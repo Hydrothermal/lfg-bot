@@ -119,6 +119,17 @@ lfg.listParties = (game = undefined) => {
     })
 }
 
+lfg.removePartyMember = memberID => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let [, member] = await promiseRedis.scan(`games:*:queues:*:members:${memberID}`)
+            resolve(await promiseRedis.del(member[0]))
+        } catch (err) {
+            reject(err)
+        }
+    })
+}
+
 lfg._makeUniquePartyID = () => {
     return new Promise(async (resolve, reject) => {
         let keepLooping = true

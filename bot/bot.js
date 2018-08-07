@@ -37,20 +37,29 @@ bot.on('message', async message => {
                     let mode = gameMode.first().content.toLowerCase()
 
                     message.channel.send(`How many players are you looking for (excluding you)?`)
+
                     let partySize = await message.channel.awaitMessages(filter(true), awaitObj)
                     let size = partySize.first().content
+
                     try {
                         let partyID = await lfg.createParty(game, mode, size, message.member)
-                        //group has been created.
+                        //group has been created. Perhaps give feedback message or something.
+
                     } catch (err) {
+
                         message.reply('Error interacting with queue database. Your queue has not been created.')
+
                     }
 
                 } catch (err) {
+
                     message.reply(`After not responding for 1 minute, your queue options have expired.`)
+
                 }
             } else {
+
                 message.channel.send('You must specify a game (`!lfg [game name]`).')
+
             }
             break
 
