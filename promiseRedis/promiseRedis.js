@@ -6,7 +6,7 @@ const promiseRedis = module.exports
 promiseRedis.del = key => {
     return new Promise((resolve, reject) => {
         client.del(key, (err, reply) => {
-            if (err || !reply) {
+            if (err) {
                 reject(err)
                 return
             }
@@ -18,7 +18,7 @@ promiseRedis.del = key => {
 promiseRedis.get = key => {
     return new Promise((resolve, reject) => {
         client.get(key, (err, reply) => {
-            if (err || !reply) {
+            if (err) {
                 reject(err)
                 return
             }
@@ -30,7 +30,7 @@ promiseRedis.get = key => {
 promiseRedis.hgetall = search => {
     return new Promise((resolve, reject) => {
         client.hgetall(search, (err, reply) => {
-            if (err || !reply) {
+            if (err) {
                 reject(err)
                 return
             }
@@ -42,7 +42,7 @@ promiseRedis.hgetall = search => {
 promiseRedis.hmset = args => {
     return new Promise((resolve, reject) => {
         client.hmset(args, (err, reply) => {
-            if (err || !reply) {
+            if (err) {
                 reject(err)
                 return
             }
@@ -54,7 +54,7 @@ promiseRedis.hmset = args => {
 promiseRedis.keyLength = () => {
     return new Promise((resolve, reject) => {
         client.info('keyspace', (err, reply) => {
-            if (err || !reply) {
+            if (err) {
                 reject(err)
                 return
             }
@@ -66,7 +66,7 @@ promiseRedis.keyLength = () => {
 promiseRedis.set = args => {
     return new Promise((resolve, reject) => {
         client.set(...args, (err, reply) => {
-            if (err || !reply) {
+            if (err) {
                 reject(err)
                 return
             }
@@ -82,7 +82,7 @@ promiseRedis.scan = search => {
             keyLength = await this.keyLength()
         } catch (err) { }
         client.scan('0', 'MATCH', search, 'COUNT', keyLength, (err, reply) => {
-            if (err || !reply) {
+            if (err) {
                 reject(err)
             }
             resolve(reply)

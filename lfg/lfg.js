@@ -17,7 +17,7 @@ lfg.addPartyMember = (partyID, member) => {
             if (party.length == 0) {
                 reject('Party does not exist.')
             } else {
-                let [, isMemberAlreadyInAParty] = await promiseRedis.scan(`games:*:queues:*:members:*`)
+                let [, isMemberAlreadyInAParty] = await promiseRedis.scan(`games:*:queues:*:members:${member.user.id}`)
 
                 if (isMemberAlreadyInAParty.length > 0) {
                     reject('You can only be in 1 party at a time.')
@@ -48,11 +48,20 @@ lfg.addPartyMember = (partyID, member) => {
 lfg.createParty = (game, mode, size, leaderMember) => {
     return new Promise(async (resolve, reject) => {
         try {
-            let uniqueID = await this._makeUniquePartyID()
-            let addEntry = promiseRedis.hmset([`games:${game.toLowerCase()}:queues:${uniqueID}`, `mode`, mode.toLowerCase(), `size`, Number(size) + 1])
-            let addLeader = this.addPartyMember(uniqueID, leaderMember)
-            await Promise.all([addEntry, addLeader])
-            resolve(uniqueID)
+
+            let [, isMemberAlreadyInAParty] = await promiseRedis.scan(`games:*:queues:*:members:${leaderMember.user.id}`)
+            console.log(isMemberAlreadyInAParty)
+            if (isMemberAlreadyInAParty.length > 0) {
+                reject('You can only be in 1 party at a time.')
+            } else {
+
+                let uniqueID = await this._makeUniquePartyID()
+                let addEntry = promiseRedis.hmset([`games:${game.toLowerCase()}:queues:${uniqueID}`, `mode`, mode.toLowerCase(), `size`, Number(size) + 1])
+                let addLeader = this.addPartyMember(uniqueID, leaderMember)
+                await Promise.all([addEntry, addLeader])
+                resolve(uniqueID)
+
+            }
         } catch (err) {
             reject(err)
         }
@@ -104,6 +113,22 @@ lfg.getPartyInfo = id => {
                 partyInfo.members.push(JSON.parse(await promiseRedis.get(partyMember)))
             }
             resolve(partyInfo)
+        } catch (err) {
+            reject(err)
+        }
+    })
+}
+
+lfg.getMemberGame = memberID => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            //games:overwatch:queues:108114:members:177019589010522112
+            let [, memberEntry] = await promiseRedis.scan(`games:*:queues:*:members:${memberID}`)
+            if (memberEntry.length == 0) {
+                resolve(null)
+            }
+            let memberGame = memberEntry[0].replace(/^games:([a-z0-9]*):.*$/, '$1')
+            resolve(memberGame)
         } catch (err) {
             reject(err)
         }
