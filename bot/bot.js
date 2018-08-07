@@ -7,6 +7,8 @@ const bot = new Discord.Client()
 
 const prefix = 'l!'
 
+let databaseBusy = false
+
 bot.on('ready', () => {
     console.log('Ready.')
 

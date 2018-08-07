@@ -134,11 +134,9 @@ lfg._makeUniquePartyID = () => {
                 })
                 if (duplicateIDs.length == 0) {
                     keepLooping = false
-
-                    resolve(uniqueID)
-
                 }
             } catch (err) { }
         }
+        resolve(uniqueID)
     })
 }
