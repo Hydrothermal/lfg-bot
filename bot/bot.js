@@ -73,6 +73,27 @@ bot.on('message', async message => {
             }
             break
 
+        case prefix + 'status':
+            try {
+                let memberInfo = await lfg.getMember(message.author.id)
+                if (!memberInfo) {
+                    message.reply('You are not in any queues right now.')
+                } else {
+                    message.send(`You are currently in a queue for ${memberInfo.game}`)
+                }
+            } catch (err) { }
+            break
+
+        case prefix + 'help':
+            message.author.send({
+                embed: createBasicEmbed(
+                    '**Here ae a list of commands:** \n\n \
+                **createparty [game]**: Create a party given game. \n \
+                **status**: See your current queue status.'
+                )
+            })
+            break
+
     }
 })
 

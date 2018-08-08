@@ -126,9 +126,14 @@ lfg.getMember = memberID => {
             if (memberEntry.length == 0) {
                 resolve(null)
             } else {
-                let memberObject = await promiseRedis.get(memberEntry[0])
                 let memberGame = memberEntry[0].replace(/^games:([a-z0-9]*):.*$/, '$1')
-                resolve(Object.assign({ game: memberGame }, parse(memberObject)))
+
+                let getMemberObject = promiseRedis.get(memberEntry[0])
+                let getGameObject = this.getGameInfo(memberGame)
+
+                let [memberObject, gameObject] = await Promise.all([getMemberObject, getGameObject])
+
+                resolve(Object.assign({ game: memberGame, party: gameObject }, parse(memberObject)))
             }
         } catch (err) {
             reject(err)
