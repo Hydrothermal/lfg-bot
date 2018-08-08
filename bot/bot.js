@@ -30,28 +30,68 @@ bot.on('message', async message => {
             if (args.length > 0) {
                 let game = args[0].toLowerCase()
 
-                message.channel.send(`What game mode would you like to play?`)
+                let [checkMemberGame, checkGameExists] = await Promise.all([lfg.getMemberGame(message.author.id), lfg.getGameInfo(game)])
+
+                if (checkMemberGame) {
+                    message.reply('You cannot create a party while in one.')
+                    return
+                }
+                if (!checkGameExists) {
+                    message.reply('Please choose an existing game.')
+                    return
+                }
+
+                message.reply({ embed: createBasicEmbed(`What game mode would you like to play?`) })
 
                 try {
-                    let gameMode = await message.channel.awaitMessages(filter, awaitObj)
+                    let gameMode = await message.channel.awaitMessages(filter(message), awaitObj)
                     let mode = gameMode.first().content.toLowerCase()
 
                     message.channel.send(`How many players are you looking for (excluding you)?`)
-                    let partySize = await message.channel.awaitMessages(filter(true), awaitObj)
+
+                    let partySize = await message.channel.awaitMessages(filter(message, true), awaitObj)
                     let size = partySize.first().content
+
                     try {
                         let partyID = await lfg.createParty(game, mode, size, message.member)
-                        //group has been created.
+
+                        message.reply({ embed: createBasicEmbed(`You are now in a party for ${game}, waiting for ${size - 1} more members. Your party ID is **${partyID}**`) })
+
                     } catch (err) {
-                        message.reply('Error interacting with queue database. Your queue has not been created.')
+                        message.reply(err.toString())
                     }
 
                 } catch (err) {
+
                     message.reply(`After not responding for 1 minute, your queue options have expired.`)
+
                 }
             } else {
+
                 message.channel.send('You must specify a game (`!lfg [game name]`).')
+
             }
+            break
+
+        case prefix + 'status':
+            try {
+                let memberInfo = await lfg.getMember(message.author.id)
+                if (!memberInfo) {
+                    message.reply('You are not in any queues right now.')
+                } else {
+                    message.send(`You are currently in a queue for ${memberInfo.game.name}`)
+                }
+            } catch (err) { }
+            break
+
+        case prefix + 'help':
+            message.author.send({
+                embed: createBasicEmbed(
+                    '**Here ae a list of commands:** \n\n \
+                **createparty [game]**: Create a party given game. \n \
+                **status**: See your current queue status.'
+                )
+            })
             break
 
     }
@@ -60,17 +100,24 @@ bot.on('message', async message => {
 bot.login(process.env.LFG_TOKEN)
 
 
+const createBasicEmbed = (text, color = 0xffffff) => {
+    let embed = new Discord.RichEmbed()
+        .setColor(color)
+        .setDescription(text)
+        .setFooter(`LFG-Bot`)
+        .setTimestamp()
+    return embed
+}
 
 
-
-const filter = (size = false) => {
+const filter = (message, size = false) => {
     if (!size) {
         return m => {
             return m.member.id == message.member.id
         }
     } else {
         return m => {
-            return m.member.id == message.member.id && Number(message.content)
+            return m.member.id == message.member.id && Number(m.content)
         }
     }
 }
