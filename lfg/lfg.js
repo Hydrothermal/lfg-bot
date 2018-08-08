@@ -8,8 +8,17 @@ lfg.addGame = (name, maxMembers) => {
     return promiseRedis.hmset([`games:${name}`, `queue`, '[]', 'max', maxMembers])
 }
 
-//resolves true if party has found enough members
+
 lfg.addPartyMember = (partyID, member) => {
+    /*
+        PARAMS:
+            partyID: ID of a party that already exists.
+            member: Discord guildMember object.
+
+        RETURNS:
+            true: If party is now full after adding member
+            false: If party can still fit members
+    */
     return new Promise(async (resolve, reject) => {
         try {
 
@@ -46,6 +55,15 @@ lfg.addPartyMember = (partyID, member) => {
 
 //i dont know where we should handle max members to a queue
 lfg.createParty = (game, mode, size, leaderMember) => {
+    
+    /*
+        PARAMS:
+            game: the name of the game. Must exist in database
+            mode; mode of the game according to database
+            leaderMember: GuildMember Object for the leader of the party.
+        RETURNS:
+            ID of the party that got created.
+    */
     return new Promise(async (resolve, reject) => {
         try {
 
@@ -55,7 +73,7 @@ lfg.createParty = (game, mode, size, leaderMember) => {
             } else {
 
                 let uniqueID = await this._makeUniquePartyID()
-                let addEntry = promiseRedis.hmset([`games:${game.toLowerCase()}:queues:${uniqueID}`, `mode`, mode.toLowerCase(), `size`, Number(size) + 1])
+                let addEntry = promiseRedis.hmset([`games:${game.toLowerCase()}:queues:${uniqueID}`, `game`, game.toLowerCase(), `mode`, mode.toLowerCase(), `size`, Number(size) + 1])
                 let addLeader = this.addPartyMember(uniqueID, leaderMember)
                 await Promise.all([addEntry, addLeader])
                 resolve(uniqueID)
@@ -68,6 +86,13 @@ lfg.createParty = (game, mode, size, leaderMember) => {
 }
 
 lfg.destroyParty = id => {
+    
+    /*
+        PARAMS:
+            id: ID of the party to destroy
+        RETURNS:
+            A raw redis response. Normally will be irrelevant.
+    */
     return new Promise(async (resolve, reject) => {
         try {
             let [, targetQueue] = await promiseRedis.scan(`games:*:queues:${id}`)
@@ -79,6 +104,11 @@ lfg.destroyParty = id => {
 }
 
 lfg.getGames = () => {
+    
+    /*
+        RETURNS:
+            All the games as an array.
+    */
     return new Promise(async (resolve, reject) => {
         try {
             let [, games] = await promiseRedis.scan('games:*')
@@ -92,6 +122,13 @@ lfg.getGames = () => {
 }
 
 lfg.getGameInfo = game => {
+    
+    /*
+        PARAMS:
+            game: name of game
+        RETURNS:
+            An object of the game as it is in redis.
+    */
     return new Promise(async (resolve, reject) => {
         try {
             let gameInfo = await promiseRedis.hgetall(`games:${game.toLowerCase()}`)
@@ -103,6 +140,13 @@ lfg.getGameInfo = game => {
 }
 
 lfg.getPartyInfo = id => {
+    
+    /*
+        PARAMS:
+            id: ID of the party
+        RETURNS:
+            An object of the party as it appears in the database
+    */
     return new Promise(async (resolve, reject) => {
         try {
             let getPartyInfo = promiseRedis.scan(`games:*:queues:${id}`)
@@ -121,6 +165,13 @@ lfg.getPartyInfo = id => {
 }
 
 lfg.getMember = memberID => {
+
+    /*
+        PARAMS:
+            id: ID of the party to destroy
+        RETURNS:
+            A raw redis response. Normally will be irrelevant.
+    */
     return new Promise(async (resolve, reject) => {
         try {
             //games:overwatch:queues:108114:members:177019589010522112
@@ -144,9 +195,16 @@ lfg.getMember = memberID => {
 }
 
 lfg.listParties = (game = undefined) => {
+    
+    /*
+        PARAMS:
+            game: name of game
+        RETURNS:
+            An object of parties in the game.
+    */
     return new Promise(async (resolve, reject) => {
         try {
-            let [, gameParties] = await promiseRedis.scan(`games:${game ? game.toLowerCase() : '*'}:queues:*`)
+            let [, gameParties] = await promiseRedis.scan(`games:${game ? game.toLowerCase() : '*'}:queues:[0-9][0-9][0-9][0-9][0-9][0-9]`)
             let gamePartiesArray = []
             for (let queue of gameParties) {
                 let queueInfo = await promiseRedis.hgetall(queue)

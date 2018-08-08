@@ -79,7 +79,7 @@ bot.on('message', async message => {
                 if (!memberInfo) {
                     message.reply('You are not in any queues right now.')
                 } else {
-                    message.send(`You are currently in a queue for ${memberInfo.game}`)
+                    message.send(`You are currently in a queue for ${memberInfo.game.name}`)
                 }
             } catch (err) { }
             break
