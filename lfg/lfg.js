@@ -82,7 +82,9 @@ lfg.getGames = () => {
     return new Promise(async (resolve, reject) => {
         try {
             let [, games] = await promiseRedis.scan('games:*')
-            resolve(games.map(game => game.replace(/games:/, '')))
+            games = games.map(game => game.replace(/^(games:)([a-z0-9]*)(:queues)?(.*)$/, '$2'))
+            let noDuplicateGames = new Set(games)
+            resolve(Array.from(noDuplicateGames))
         } catch (err) {
             reject(err)
         }
@@ -133,7 +135,7 @@ lfg.getMember = memberID => {
 
                 let [memberObject, gameObject] = await Promise.all([getMemberObject, getGameObject])
 
-                resolve(Object.assign({ game: memberGame, party: gameObject }, parse(memberObject)))
+                resolve(Object.assign({ game: gameObject }, parse(memberObject)))
             }
         } catch (err) {
             reject(err)
