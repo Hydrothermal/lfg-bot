@@ -40,9 +40,15 @@ lfg.addPartyMember = (partyID, member) => {
                 } else {
                     await promiseRedis.set([`${party[0]}:members:${member.user.id}`, stringify(member)])
                     if (partyInfo.size + 1 == allPartyMembers.length - 1) {
-                        resolve(true)
+                        resolve({
+                            full: true,
+                            party: partyInfo
+                        })
                     } else {
-                        resolve(false)
+                        resolve({
+                            full: false,
+                            party: partyInfo
+                        })
                     }
                 }
 
@@ -55,7 +61,7 @@ lfg.addPartyMember = (partyID, member) => {
 
 //i dont know where we should handle max members to a queue
 lfg.createParty = (game, mode, size, leaderMember) => {
-    
+
     /*
         PARAMS:
             game: the name of the game. Must exist in database
@@ -86,7 +92,7 @@ lfg.createParty = (game, mode, size, leaderMember) => {
 }
 
 lfg.destroyParty = id => {
-    
+
     /*
         PARAMS:
             id: ID of the party to destroy
@@ -104,7 +110,7 @@ lfg.destroyParty = id => {
 }
 
 lfg.getGames = () => {
-    
+
     /*
         RETURNS:
             All the games as an array.
@@ -122,7 +128,7 @@ lfg.getGames = () => {
 }
 
 lfg.getGameInfo = game => {
-    
+
     /*
         PARAMS:
             game: name of game
@@ -140,7 +146,7 @@ lfg.getGameInfo = game => {
 }
 
 lfg.getPartyInfo = id => {
-    
+
     /*
         PARAMS:
             id: ID of the party
@@ -195,7 +201,7 @@ lfg.getMember = memberID => {
 }
 
 lfg.listParties = (game = undefined) => {
-    
+
     /*
         PARAMS:
             game: name of game

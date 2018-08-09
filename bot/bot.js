@@ -47,7 +47,7 @@ bot.on('message', async message => {
                     let gameMode = await message.channel.awaitMessages(filter(message), awaitObj)
                     let mode = gameMode.first().content.toLowerCase()
 
-                    message.channel.send(`How many players are you looking for (excluding you)?`)
+                    message.channel.send(`How many players are you looking for (including you)?`)
 
                     let partySize = await message.channel.awaitMessages(filter(message, true), awaitObj)
                     let size = partySize.first().content
@@ -75,13 +75,13 @@ bot.on('message', async message => {
 
 
         case prefix + 'leaveparty':
-                try {
-                    let lfgMember = await lfg.getMember(message.author.id)
-                    await lfg.removePartyMember(message.author.id)
-                    message.reply(`You have left you party: **${lfgMember.game.name}**.`)
-                } catch (err) {
-                    message.reply(err.toString())
-                }
+            try {
+                let lfgMember = await lfg.getMember(message.author.id)
+                await lfg.removePartyMember(message.author.id)
+                message.reply(`You have left you party: **${lfgMember.game.name}**.`)
+            } catch (err) {
+                message.reply(err.toString())
+            }
             break
 
         case prefix + 'help':
@@ -94,6 +94,21 @@ bot.on('message', async message => {
             })
             break
 
+        case prefix + 'joinparty':
+            if (args.length < 0) {
+                message.reply('Please specify a party to join.')
+            } else {
+                try {
+                    let {party : partyInfo} = await lfg.addPartyMember(args[0], message.member)
+                    message.reply(`You have joined **${args[0]} (${partyInfo.game})**`)
+                    if (partyInfo.full) {
+                        message.channel.send({ embed: createBasicEmbed(`**${args[0]} (${partyInfo.game})** is now ready!`) })
+                    }
+                } catch (err) {
+                    message.reply(err.toString())
+                }
+            }
+            break
 
         case prefix + 'status':
             try {
