@@ -79,7 +79,7 @@ lfg.createParty = (game, mode, size, leaderMember) => {
             } else {
 
                 let uniqueID = await this._makeUniquePartyID()
-                let addEntry = promiseRedis.hmset([`games:${game.toLowerCase()}:queues:${uniqueID}`, `game`, game.toLowerCase(), `mode`, mode.toLowerCase(), `size`, Number(size) + 1])
+                let addEntry = promiseRedis.hmset([`games:${game.toLowerCase()}:queues:${uniqueID}`, `game`, game.toLowerCase(), `mode`, mode.toLowerCase(), `size`, size])
                 let addLeader = this.addPartyMember(uniqueID, leaderMember)
                 await Promise.all([addEntry, addLeader])
                 resolve(uniqueID)
