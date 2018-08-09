@@ -30,7 +30,7 @@ bot.on('message', async message => {
             if (args.length > 0) {
                 let game = args[0].toLowerCase()
 
-                let [checkMemberGame, checkGameExists] = await Promise.all([lfg.getMemberGame(message.author.id), lfg.getGameInfo(game)])
+                let [checkMemberGame, checkGameExists] = await Promise.all([lfg.getMember(message.author.id), lfg.getGameInfo(game)])
 
                 if (checkMemberGame) {
                     message.reply('You cannot create a party while in one.')
@@ -73,25 +73,37 @@ bot.on('message', async message => {
             }
             break
 
+
+        case prefix + 'leaveparty':
+                try {
+                    let lfgMember = await lfg.getMember(message.author.id)
+                    await lfg.removePartyMember(message.author.id)
+                    message.reply(`You have left you party: **${lfgMember.game.name}**.`)
+                } catch (err) {
+                    message.reply(err.toString())
+                }
+            break
+
+        case prefix + 'help':
+            message.author.send({
+                embed: createBasicEmbed(
+                    '**Here are a list of commands:** \n\n \
+                **createparty [game]**: Create a party given game. \n \
+                **status**: See your current queue status.'
+                )
+            })
+            break
+
+
         case prefix + 'status':
             try {
                 let memberInfo = await lfg.getMember(message.author.id)
                 if (!memberInfo) {
                     message.reply('You are not in any queues right now.')
                 } else {
-                    message.send(`You are currently in a queue for ${memberInfo.game.name}`)
+                    message.reply(`You are currently in a queue for ${memberInfo.game.name}`)
                 }
             } catch (err) { }
-            break
-
-        case prefix + 'help':
-            message.author.send({
-                embed: createBasicEmbed(
-                    '**Here ae a list of commands:** \n\n \
-                **createparty [game]**: Create a party given game. \n \
-                **status**: See your current queue status.'
-                )
-            })
             break
 
     }
