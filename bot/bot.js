@@ -30,7 +30,7 @@ bot.on('message', async message => {
             if (args.length > 0) {
                 let game = args[0].toLowerCase()
 
-                let [checkMemberGame, checkGameExists] = await Promise.all([lfg.getMember(message.author.id), lfg.getGameInfo(game)])
+                let [checkMemberGame, checkGameExists] = await Promise.all([lfg.getMemberGame(message.author.id), lfg.getGameInfo(game)])
 
                 if (checkMemberGame) {
                     message.reply('You cannot create a party while in one.')
@@ -47,7 +47,7 @@ bot.on('message', async message => {
                     let gameMode = await message.channel.awaitMessages(filter(message), awaitObj)
                     let mode = gameMode.first().content.toLowerCase()
 
-                    message.channel.send(`How many players are you looking for (including you)?`)
+                    message.channel.send(`How many players are you looking for (excluding you)?`)
 
                     let partySize = await message.channel.awaitMessages(filter(message, true), awaitObj)
                     let size = partySize.first().content
@@ -58,13 +58,11 @@ bot.on('message', async message => {
                         message.reply({ embed: createBasicEmbed(`You are now in a party for ${game}, waiting for ${size - 1} more members. Your party ID is **${partyID}**`) })
 
                     } catch (err) {
-                        console.log(err)
-                        if (!(err instanceof Error)) {
-                            message.reply(err.toString())
-                        }
+                        message.reply(err.toString())
                     }
 
                 } catch (err) {
+
                     message.reply(`After not responding for 1 minute, your queue options have expired.`)
 
                 }
@@ -75,82 +73,25 @@ bot.on('message', async message => {
             }
             break
 
-
-        case prefix + 'leaveparty':
-            try {
-                let lfgMember = await lfg.getMember(message.author.id)
-                if (!lfgMember) {
-                    message.reply('You are not in a party.')
-                } else {
-                    await lfg.removePartyMember(message.author.id)
-                    message.reply(`You have left you party: **${lfgMember.game.name}**.`)
-                }
-            } catch (err) {
-                console.log(err)
-                if (!(err instanceof Error)) {
-                    message.reply(err.toString())
-                }
-            }
-            break
-
-        case prefix + 'help':
-            message.author.send({
-                embed: createBasicEmbed(
-                    '**Here are a list of commands:** \n\n \
-                **createparty [game]**: Create a party given game. \n \
-                **status**: See your current queue status.'
-                )
-            })
-            break
-
-        case prefix + 'joinparty':
-            if (args.length == 0) {
-                message.reply('Please specify a party to join.')
-            } else {
-                try {
-                    let { party: partyInfo } = await lfg.addPartyMember(args[0], message.member)
-                    message.reply(`You have joined **${args[0]} (${partyInfo.game})**`)
-                    if (partyInfo.full) {
-                        message.channel.send({ embed: createBasicEmbed(`**${args[0]} (${partyInfo.game})** is now ready!`) })
-                    }
-                } catch (err) {
-                    console.log(err)
-                    if (!(err instanceof Error)) {
-                        message.reply(err.toString())
-                    }
-                }
-            }
-            break
-
-        case prefix + 'party':
-            if (args.length == 0) {
-                message.reply('Please specify a party')
-            } else {
-                try {
-                    let partyInfo = await lfg.getPartyInfo(args[0])
-                    if (!partyInfo) {
-                        message.reply('Party does not exist.')
-                    } else {
-                        message.reply(`Party **${partyInfo.id || args[0]} (${partyInfo.game})** has ${partyInfo.members.length}/${partyInfo.size} members.`)
-                    }
-                } catch (err) {
-                    console.log(err)
-                    if (!(err instanceof Error)) {
-                        message.reply(err.toString())
-                    }
-                }
-            }
-            break
-
         case prefix + 'status':
             try {
                 let memberInfo = await lfg.getMember(message.author.id)
                 if (!memberInfo) {
                     message.reply('You are not in any queues right now.')
                 } else {
-                    message.reply(`You are currently in a queue for ${memberInfo.game.name}`)
+                    message.send(`You are currently in a queue for ${memberInfo.game.name}`)
                 }
             } catch (err) { }
+            break
+
+        case prefix + 'help':
+            message.author.send({
+                embed: createBasicEmbed(
+                    '**Here ae a list of commands:** \n\n \
+                **createparty [game]**: Create a party given game. \n \
+                **status**: See your current queue status.'
+                )
+            })
             break
 
     }

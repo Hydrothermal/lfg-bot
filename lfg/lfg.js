@@ -14,7 +14,6 @@ lfg.addPartyMember = (partyID, member) => {
         PARAMS:
             partyID: ID of a party that already exists.
             member: Discord guildMember object.
-
         RETURNS:
             true: If party is now full after adding member
             false: If party can still fit members
@@ -40,15 +39,9 @@ lfg.addPartyMember = (partyID, member) => {
                 } else {
                     await promiseRedis.set([`${party[0]}:members:${member.user.id}`, stringify(member)])
                     if (partyInfo.size + 1 == allPartyMembers.length - 1) {
-                        resolve({
-                            full: true,
-                            party: partyInfo
-                        })
+                        resolve(true)
                     } else {
-                        resolve({
-                            full: false,
-                            party: partyInfo
-                        })
+                        resolve(false)
                     }
                 }
 
@@ -61,7 +54,7 @@ lfg.addPartyMember = (partyID, member) => {
 
 //i dont know where we should handle max members to a queue
 lfg.createParty = (game, mode, size, leaderMember) => {
-
+    
     /*
         PARAMS:
             game: the name of the game. Must exist in database
@@ -79,7 +72,7 @@ lfg.createParty = (game, mode, size, leaderMember) => {
             } else {
 
                 let uniqueID = await this._makeUniquePartyID()
-                let addEntry = promiseRedis.hmset([`games:${game.toLowerCase()}:queues:${uniqueID}`, `game`, game.toLowerCase(), `mode`, mode.toLowerCase(), `size`, size])
+                let addEntry = promiseRedis.hmset([`games:${game.toLowerCase()}:queues:${uniqueID}`, `game`, game.toLowerCase(), `mode`, mode.toLowerCase(), `size`, Number(size) + 1])
                 let addLeader = this.addPartyMember(uniqueID, leaderMember)
                 await Promise.all([addEntry, addLeader])
                 resolve(uniqueID)
@@ -92,7 +85,7 @@ lfg.createParty = (game, mode, size, leaderMember) => {
 }
 
 lfg.destroyParty = id => {
-
+    
     /*
         PARAMS:
             id: ID of the party to destroy
@@ -110,7 +103,7 @@ lfg.destroyParty = id => {
 }
 
 lfg.getGames = () => {
-
+    
     /*
         RETURNS:
             All the games as an array.
@@ -128,7 +121,7 @@ lfg.getGames = () => {
 }
 
 lfg.getGameInfo = game => {
-
+    
     /*
         PARAMS:
             game: name of game
@@ -146,7 +139,7 @@ lfg.getGameInfo = game => {
 }
 
 lfg.getPartyInfo = id => {
-
+    
     /*
         PARAMS:
             id: ID of the party
@@ -201,7 +194,7 @@ lfg.getMember = memberID => {
 }
 
 lfg.listParties = (game = undefined) => {
-
+    
     /*
         PARAMS:
             game: name of game
