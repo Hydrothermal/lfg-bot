@@ -1,5 +1,4 @@
-const redis = require('redis')
-const client = redis.createClient()
+const client = require('redis').createClient().select(12)
 
 const promiseRedis = module.exports
 
@@ -80,7 +79,9 @@ promiseRedis.scan = search => {
         let keyLength = 999999
         try {
             keyLength = await this.keyLength()
-        } catch (err) { }
+        } catch (err) {
+            console.warn("Redis scan failed", err)
+        }
         client.scan('0', 'MATCH', search, 'COUNT', keyLength, (err, reply) => {
             if (err) {
                 reject(err)

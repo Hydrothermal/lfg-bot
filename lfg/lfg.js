@@ -14,7 +14,6 @@ lfg.addPartyMember = (partyID, member) => {
         PARAMS:
             partyID: ID of a party that already exists.
             member: Discord guildMember object.
-
         RETURNS:
             true: If party is now full after adding member
             false: If party can still fit members
